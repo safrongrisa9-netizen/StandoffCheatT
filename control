@@ -1,1 +1,9 @@
-
+Package: com.erafox.standoffcheat
+Name: Standoff2Cheat
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Cheat for Standoff 2 v0.36.0
+Maintainer: erafox
+Author: erafox
+Section: Tweaks
+Depends: mobilesubstrate
