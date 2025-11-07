@@ -1,27 +1,52 @@
-name: Makefile CI
+name: Build iOS Tweak
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
+    runs-on: macos-latest
+    
     steps:
-    - uses: actions/checkout@v4
-
-    - name: configure
-      run: ./configure
-
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Theos
+      run: |
+        git clone --recursive https://github.com/theos/theos.git /opt/theos
+        echo "THEOS=/opt/theos" >> $GITHUB_ENV
+        
     - name: Install dependencies
-      run: make
-
-    - name: Run check
-      run: make check
-
-    - name: Run distcheck
-      run: make distcheck
+      run: |
+        brew install ldid
+        sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+        
+    - name: Build tweak
+      run: |
+        export THEOS=/opt/theos
+        make package
+        
+    - name: Upload deb package
+      uses: actions/upload-artifact@v4
+      with:
+        name: StandoffCheat-DEB
+        path: packages/*.deb
+        retention-days: 30
+        
+    - name: Create TIPA (if IPA provided)
+      run: |
+        if [ -f "Standoff2.ipa" ]; then
+          unzip -q Standoff2.ipa -d Payload/
+          cp .theos/obj/debug/StandoffCheat.dylib Payload/Standoff2.app/
+          ldid -SEntitlements.plist Payload/Standoff2.app/StandoffCheat.dylib
+          zip -qr StandoffCheat.tipa Payload/
+        fi
+        
+    - name: Upload TIPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: StandoffCheat-TIPA
+        path: StandoffCheat.tipa
+        if-no-files-found: ignore
